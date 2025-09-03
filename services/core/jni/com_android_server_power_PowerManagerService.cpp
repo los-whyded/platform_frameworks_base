@@ -46,8 +46,6 @@
 #include <utils/Timers.h>
 #include <utils/misc.h>
 
-#include <PowerExt.h>
-
 #include "jni.h"
 
 using aidl::android::hardware::power::Boost;
@@ -70,7 +68,6 @@ static struct {
 
 static jobject gPowerManagerServiceObj;
 static power::PowerHalController gPowerHalController;
-static PowerExt gPowerExtController;
 static nsecs_t gLastEventTime[USER_ACTIVITY_EVENT_LAST + 1];
 
 // Throttling interval for user activity calls.
@@ -92,23 +89,31 @@ static bool checkAndClearExceptionFromCallback(JNIEnv* env, const char* methodNa
 }
 
 static bool isPowerExtAvailable() {
-    return gPowerExtController.init();
+    return gPowerHalController.isPowerExtAvailable().isOk();
 }
 
 static bool isPowerExtModeSupported(const ::std::string& mode) {
-    return gPowerExtController.isModeSupported(mode);
+    auto result = gPowerHalController.isExtModeSupported(mode);
+    if (result.isOk()) {
+        return result.value();
+    }
+    return false;
 }
 
 static bool isPowerExtBoostSupported(const ::std::string& boost) {
-    return gPowerExtController.isBoostSupported(boost);
+    auto result = gPowerHalController.isExtBoostSupported(boost);
+    if (result.isOk()) {
+        return result.value();
+    }
+    return false;
 }
 
 static void setPowerExtMode(const ::std::string& mode, bool enabled) {
-    gPowerExtController.setMode(mode, enabled);
+    gPowerHalController.setExtMode(mode, enabled);
 }
 
 static void setPowerExtBoost(const ::std::string& boost, int32_t durationMs) {
-    gPowerExtController.setBoost(boost, durationMs);
+    gPowerHalController.setExtBoost(boost, durationMs);
 }
 
 static void setPowerBoost(Boost boost, int32_t durationMs) {
